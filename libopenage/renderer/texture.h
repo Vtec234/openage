@@ -20,6 +20,8 @@ public:
 	/// Copies this texture's data from graphics hardware into a CPU-accessible
 	/// TextureData buffer.
 	virtual resources::TextureData into_data() = 0;
+	virtual void bind() = 0;
+	int tex_id;
 
 protected:
 	/// Constructs the base with the given information.

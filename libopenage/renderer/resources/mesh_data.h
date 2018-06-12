@@ -113,7 +113,11 @@ public:
 	VertexInputInfo get_info() const;
 
 	/// Initializes the mesh data with a simple quadrilateral.
+	static MeshData make_quad(const std::array<float, 16> quad_data);
+
 	static MeshData make_quad();
+	//for alpha blending
+	static MeshData make_alpha(const std::array<float, 24> quad_data);
 
 private:
 	/// The raw vertex data. The size is an integer multiple of the size of a single vertex.

@@ -7,7 +7,8 @@
 #include <experimental/optional>
 
 #include "context.h"
-
+#include "batchrenderer.h"
+//#include "vertexrenderer.h"
 
 namespace openage {
 namespace renderer {
@@ -23,7 +24,10 @@ public:
 
 	void update() override;
 
-	std::unique_ptr<Renderer> make_renderer() override;
+	std::shared_ptr<Renderer> make_renderer() override;
+	std::shared_ptr<BatchRenderer> make_batchrenderer(util::Path& path);
+	//std::shared_ptr<VertexRenderer> make_vertexrenderer(util::Path& path);
+
 
 	/// Make this window's context the current rendering context of the current thread.
 	/// Only use this and most other GL functions on a dedicated window thread.
@@ -31,10 +35,11 @@ public:
 
 	/// Return a pointer to this window's GL context.
 	opengl::GlContext *get_context();
-
-private:
 	/// The SDL struct representing this window.
 	SDL_Window *window;
+
+private:
+	
 
 	/// The window's OpenGL context. It's optional because it can't be constructed immediately,
 	/// but after the constructor runs it's guaranteed to be available.

@@ -8,7 +8,7 @@
 #include "../../log/log.h"
 #include "../../error/error.h"
 #include "../../util/csv.h"
-
+#include <string>
 
 namespace openage {
 namespace renderer {

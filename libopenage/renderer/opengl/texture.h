@@ -22,6 +22,8 @@ public:
 
 	/// Downloads the texture from the GPU and returns it as CPU-accessible data.
 	resources::TextureData into_data() override;
+
+	void bind() override;
 };
 
 }}} // openage::renderer::opengl

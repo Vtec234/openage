@@ -33,10 +33,16 @@ public:
 	/// and draws the Geometry if it's not nullptr.
 	void execute_with(const GlUniformInput*, const GlGeometry*);
 
+	void send_uniform(const GlUniformInput *unif_in);
+
 	bool has_uniform(const char*) override;
 
+	int texture_array();
+	int sampler_array(int active_id);
+	
+
 protected:
-	std::unique_ptr<UniformInput> new_unif_in() override;
+	std::shared_ptr<UniformInput> new_unif_in() override;
 	void set_i32(UniformInput*, const char*, int32_t) override;
 	void set_u32(UniformInput*, const char*, uint32_t) override;
 	void set_f32(UniformInput*, const char*, float) override;

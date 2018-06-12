@@ -16,185 +16,150 @@
 #include "shader_program.h"
 #include "geometry.h"
 #include "opengl/window.h"
-
-
+#include "opengl/context.h"
+#include "opengl/sprite.h"
+#include "opengl/shader_program.h"
+#include <time.h>
 namespace openage {
 namespace renderer {
 namespace tests {
 
-void draw_texture_at(std::string tex, int x, int y) {
-		
-}
+
 
 void renderer_demo_0(util::Path path) {
-	opengl::GlWindow window("openage renderer test", { 800, 600 } );
+	opengl::GlWindow window("openage renderer test", { 1024, 768 } );
 
 	auto renderer = window.make_renderer();
-
+	
 	auto vshader_src = resources::ShaderSource(
 		resources::shader_lang_t::glsl,
 		resources::shader_stage_t::vertex,
-		R"s(
-#version 330
-
-layout(location=0) in vec2 position;
-layout(location=1) in vec2 uv;
-uniform mat4 mvp;
-out vec2 v_uv;
-
-void main() {
-	gl_Position = mvp * vec4(position, 0.0, 1.0);
-  v_uv = vec2(uv.x, 1.0 - uv.y);
-}
-)s");
+		path / "/assets/test_shaders/vshader_src.vert.glsl");
 
 	auto fshader_src = resources::ShaderSource(
 		resources::shader_lang_t::glsl,
 		resources::shader_stage_t::fragment,
-		R"s(
-#version 330
-
-in vec2 v_uv;
-uniform sampler2D tex;
-uniform uint u_id;
-
-layout(location=0) out vec4 col;
-layout(location=1) out uint id;
-
-void main() {
-	vec4 tex_val = texture(tex, v_uv);
-	if (tex_val.a == 0) {
-		discard;
-	}
-	col = tex_val;
-	id = u_id + 1u;
-}
-)s");
+		path / "assets/test_shaders/fshader_src.frag.glsl");
 
 	auto vshader_display_src = resources::ShaderSource(
 		resources::shader_lang_t::glsl,
 		resources::shader_stage_t::vertex,
-		R"s(
-#version 330
-
-layout(location=0) in vec2 position;
-layout(location=1) in vec2 uv;
-uniform mat4 proj;
-out vec2 v_uv;
-
-void main() {
-	gl_Position = proj * vec4(position, 0.0, 1.0);
-	v_uv = uv;
-}
-)s");
+		path / "assets/test_shaders/vshader_display_src.vert.glsl");
 
 	auto fshader_display_src = resources::ShaderSource(
 		resources::shader_lang_t::glsl,
 		resources::shader_stage_t::fragment,
-		R"s(
-#version 330
+		path / "assets/test_shaders/fshader_display_src.frag.glsl");
 
-uniform sampler2D color_texture;
+	auto vshader_alpha = resources::ShaderSource(
+		resources::shader_lang_t::glsl,
+		resources::shader_stage_t::vertex,
+		path / "assets/test_shaders/alphamask.vert.glsl");
 
-in vec2 v_uv;
-out vec4 col;
-
-void main() {
-	col = texture(color_texture, v_uv);
-}
-)s");
-
+	auto fshader_alpha = resources::ShaderSource(
+		resources::shader_lang_t::glsl,
+		resources::shader_stage_t::fragment,
+		path / "assets/test_shaders/alphamask.frag.glsl");
+	auto size = window.get_size();
 	auto shader = renderer->add_shader( { vshader_src, fshader_src } );
 	auto shader_display = renderer->add_shader( { vshader_display_src, fshader_display_src } );
+	auto alpha_shader = renderer->add_shader({vshader_alpha,fshader_alpha});
+	//start of experimental part
+	float aspect = (float)size.y/(float)size.x;
 
+	//start of experimental area
+	opengl::Sprite sprite;
 
-	auto transform1 = Eigen::Affine3f::Identity();
-	transform1.prescale(Eigen::Vector3f(0.4f, 0.2f, 1.0f));
-	transform1.prerotate(Eigen::AngleAxisf(30.0f * 3.14159f / 180.0f, Eigen::Vector3f::UnitX()));
-	transform1.pretranslate(Eigen::Vector3f(-0.4f, -0.6f, 0.0f));
+	//load the texture that we will be using
+	auto terrain_texture =  sprite.make_texture(path,"/assets/terrain/textures/g_m02_00_color.png",false,renderer);
+	auto paladin = sprite.make_texture(path,"/assets/converted/graphics/795.slp.png",true,renderer);
+	auto paladin_2 = sprite.make_texture(path,"/assets/converted/graphics/805.slp.png",true,renderer);
+	auto alpha_texture =  sprite.make_texture(path,"/assets/terrain/blends/watershore.png",false,renderer);
+	auto shore_texture =  sprite.make_texture(path,"/assets/terrain/textures/g_bch_00_color.png",false,renderer);
+	auto water_texture =  sprite.make_texture(path,"/assets/terrain/textures/g_wtr_00_color_1.png",false,renderer);
+	auto dust_texture =  sprite.make_texture(path,"/assets/terrain/textures/g_ds3_00_color.png",false,renderer);
+	auto road_texture =  sprite.make_texture(path,"/assets/terrain/textures/62.png",false,renderer);	
+	//now to choose which subtexture as well as the transformation matrix. Both of these can
+	//be fed in the same function and updated everytime as this does not consume as many resources.
+	
+	
+	
+	float left_terr = 0.125f*7;
+	float top_terr = 0.125f*1;		
+	auto alpha_test = sprite.make_terrain(water_texture,alpha_texture,alpha_shader,aspect,(float)size.y,0,512-64,left_terr,top_terr);
+	auto shore_1 = sprite.make_render_obj(shore_texture,true,0,shader,aspect,(float)size.y,0,0);
+	auto water_1 = sprite.make_render_obj(water_texture,true,0,shader,aspect,(float)size.y,0,0);
+	auto dust = sprite.make_render_obj(dust_texture,true,0,shader,aspect,(float)size.y,600,50);
+	auto water_2 = sprite.make_render_obj(shore_texture,true,0,shader,aspect,(float)size.y,0,1024);
+	auto water_3 = sprite.make_render_obj(shore_texture,true,0,shader,aspect,(float)size.y,1024,0);
+	auto water_4 = sprite.make_render_obj(shore_texture,true,0,shader,aspect,(float)size.y,1024,1024);
+	auto elephant = sprite.make_render_obj(paladin,false,0,shader,aspect,(float)size.y,400,450);
+	std::vector<Renderable_test> mix_tex; 
+	
+	
+	//mix_tex.push_back(dust);
+	
+	//mix_tex.push_back(water_2);
+	//mix_tex.push_back(water_3);
+	//mix_tex.push_back(water_4);
+	//mix_tex.push_back(alpha_test);
+	
+	/*for(int z = 0;z<100;z++){
+		
+		mix_tex.push_back(sprite.make_render_obj(paladin,false,rand()%20,shader,aspect,(float)size.y,rand()%1920,rand()%1920));
+		//mix_tex.push_back(sprite.make_render_obj(paladin_2,false,15,shader,aspect,(float)size.y,rand()%1024,rand()%1024));
+			
+	}*/
 
-	auto unif_in1 = shader->new_uniform_input(
-		"mvp", transform1.matrix(),
-		//"color", Eigen::Vector4f(1.0f, 0.0f, 0.0f, 1.0f),
-		"u_id", 1u
-	);
-
-	auto transform2 = Eigen::Affine3f::Identity();
-	transform2.prescale(Eigen::Vector3f(0.3f, 0.1f, 1.0f));
-	transform2.prerotate(Eigen::AngleAxisf(50.0f * 3.14159f / 180.0f, Eigen::Vector3f::UnitZ()));
-
-	auto transform3 = transform2;
-
-	transform2.pretranslate(Eigen::Vector3f(0.3f, 0.1f, 0.3f));
-
-	auto tex = resources::TextureData(path / "/assets/gaben.png");
-	auto gltex = renderer->add_texture(tex);
-	auto unif_in2 = shader->new_uniform_input(
-		"mvp", transform2.matrix(),
-		//"color", Eigen::Vector4f(0.0f, 1.0f, 0.0f, 1.0f),
-		"u_id", 2u,
-		"tex", gltex.get()
-	);
-
-	transform3.prerotate(Eigen::AngleAxisf(90.0f * 3.14159f / 180.0f, Eigen::Vector3f::UnitZ()));
-	transform3.pretranslate(Eigen::Vector3f(0.3f, 0.1f, 0.5f));
-
-	auto unif_in3 = shader->new_uniform_input(
-		"mvp", transform3.matrix(),
-		//"color", Eigen::Vector4f(0.0f, 0.0f, 1.0f, 1.0f),
-		"u_id", 3u
-	);
-
-	auto quad = renderer->add_mesh_geometry(resources::MeshData::make_quad());
-	Renderable obj1 {
-		unif_in1.get(),
-		quad.get(),
-		true,
-		true,
-	};
-
-	Renderable obj2{
-		unif_in2.get(),
-		quad.get(),
-		true,
-		true,
-	};
-
-	Renderable obj3 {
-		unif_in3.get(),
-		quad.get(),
-		true,
-		true,
-	};
-
-	auto size = window.get_size();
+	for(int j = 0; j<4;j++){
+	for(int i=-3;i<2;i++){
+		mix_tex.push_back(sprite.make_render_obj(road_texture,true,0,shader,aspect,(float)size.y,512*j,512*i));
+		//mix_tex.push_back(sprite.make_render_obj(shore_texture,true,0,shader,aspect,(float)size.y,512*j,512*i));
+		//mix_tex.push_back(sprite.make_render_obj(dust_texture,true,0,shader,aspect,(float)size.y,512*j,512*i));
+	}
+	}
+	//mix_tex.push_back(elephant);
+	log::log(INFO << "what is path "<<path);
+	log::log(INFO << "Size of the Window "<<size.x<<"X"<<size.y);
 	auto color_texture = renderer->add_texture(resources::TextureInfo(size.x, size.y, resources::pixel_format::rgba8));
 	auto id_texture = renderer->add_texture(resources::TextureInfo(size.x, size.y, resources::pixel_format::r32ui));
 	auto depth_texture = renderer->add_texture(resources::TextureInfo(size.x, size.y, resources::pixel_format::depth24));
+	//one of the targets
 	auto fbo = renderer->create_texture_target( { color_texture.get(), id_texture.get(), depth_texture.get() } );
-
+	
 	auto color_texture_uniform = shader_display->new_uniform_input("color_texture", color_texture.get());
-	Renderable display_obj {
-		color_texture_uniform.get(),
-		quad.get(),
-		false,
-		false,
-	};
-
-	RenderPass pass {
-		{ obj1, obj2, obj3 },
-		fbo.get()
-	};
-
-	RenderPass display_pass {
-		{ display_obj },
-		renderer->get_display_target(),
-	};
 
 	resources::TextureData id_texture_data = id_texture->into_data();
 	bool texture_data_valid = false;
 
-	glDepthFunc(GL_LEQUAL);
+	auto quad = renderer->add_mesh_geometry(resources::MeshData::make_quad());
+
+	Renderable_test display_obj {
+		color_texture_uniform,
+		quad,
+		false,
+		false,
+	};
+
+	/*RenderPass_test pastu{
+		{terrain_1,terrain_2,terrain_3,terrain_4,terrain_5,terrain_6,terrain_7,terrain_8,terrain_9,paladin_1},//,test_obj5,test_obj6,test_obj7},
+		fbo.get(),
+	};*/
+	/*RenderPass_test alpha_pass{
+		{water_1,water_2,water_3,water_4,alpha_test},
+		fbo.get(),
+	};*/
+	RenderPass_test alpha_pass{
+		mix_tex,
+		fbo.get(),
+	};
+	RenderPass_test render_main{
+		{display_obj},
+		renderer->get_display_target(),
+	};
+
+
+	//glDepthFunc(GL_LEQUAL);
 	glDepthRange(0.0, 1.0);
 	// what is this
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -226,7 +191,7 @@ void main() {
 			float xScale = 1.0/aspectRatio;
 
 			Eigen::Matrix4f pmat;
-			pmat << xScale, 0, 0, 0,
+			pmat << 1, 0, 0, 0,
 							0, 1, 0, 0,
 							0, 0, 1, 0,
 							0, 0, 0, 1;
@@ -239,16 +204,27 @@ void main() {
 			texture_data_valid = false;
 
 			shader_display->update_uniform_input(color_texture_uniform.get(), "color_texture", color_texture.get(), "proj", pmat);
-			pass.target = fbo.get();
+			alpha_pass.target = fbo.get();
 		} );
-
+	time_t curr_time,prev_time;
+	int frame = 0;
+	time(&prev_time);
 	while (!window.should_close()) {
-		renderer->render(pass);
-		renderer->render(display_pass);
+		time(&curr_time);
+		frame++;
+		if(curr_time-prev_time >= 1){
+			prev_time = curr_time;
+			log::log(INFO << frame);
+			frame = 0;
+		}
+		
+		renderer->render_test(alpha_pass);
+		renderer->render_test(render_main);
 		window.update();
 		window.get_context()->check_error();
 	}
 }
+
 
 void renderer_demo(int demo_id, util::Path path) {
 	switch (demo_id) {

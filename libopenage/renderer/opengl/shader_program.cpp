@@ -26,7 +26,8 @@ static constexpr auto glsl_to_gl_type = datastructure::create_const_map<const ch
 	std::make_pair("mat4", GL_FLOAT_MAT4),
 	std::make_pair("ivec2", GL_INT_VEC2),
 	std::make_pair("ivec3", GL_INT_VEC3),
-	std::make_pair("sampler2D", GL_SAMPLER_2D)
+	std::make_pair("sampler2D", GL_SAMPLER_2D),
+	std::make_pair("sampler2DArray", GL_SAMPLER_2D_ARRAY)
 );
 
 static void check_program_status(GLuint program, GLenum what_to_check) {
@@ -79,6 +80,7 @@ static constexpr auto gl_type_size = datastructure::create_const_map<GLenum, siz
 	std::make_pair(GL_FLOAT_MAT4, 64),
 	std::make_pair(GL_SAMPLER_1D, 4),
 	std::make_pair(GL_SAMPLER_2D, 4),
+	std::make_pair(GL_SAMPLER_2D_ARRAY, 4),
 	std::make_pair(GL_SAMPLER_3D, 4),
 	std::make_pair(GL_SAMPLER_CUBE, 4)
 );
@@ -204,15 +206,6 @@ GlShaderProgram::GlShaderProgram(const std::vector<resources::ShaderSource> &src
 void GlShaderProgram::use() const {
 	glUseProgram(*this->handle);
 
-	for (auto const &pair : this->textures_per_texunits) {
-		// We have to bind the texture to their texture units here because
-		// the texture unit bindings are global to the context. Each time
-		// the shader switches, it is possible that some other shader overwrote
-		// these, and since we want the uniform values to persist across execute_with
-		// calls, we have to set them more often than just on execute_with.
-		glActiveTexture(GL_TEXTURE0 + pair.first);
-		glBindTexture(GL_TEXTURE_2D, pair.second);
-	}
 }
 
 void GlShaderProgram::execute_with(const GlUniformInput *unif_in, const GlGeometry *geom) {
@@ -265,9 +258,11 @@ void GlShaderProgram::execute_with(const GlUniformInput *unif_in, const GlGeomet
 			GLuint tex = *reinterpret_cast<const GLuint*>(ptr);
 			glActiveTexture(GL_TEXTURE0 + tex_unit);
 			glBindTexture(GL_TEXTURE_2D, tex);
+			//log::log(INFO << "tex_unit   "<<tex_unit<<"   tex  "<< tex);
 			// TODO: maybe call this at a more appropriate position
 			glUniform1i(loc, tex_unit);
-			this->textures_per_texunits[tex_unit] = tex;
+			//log::log(INFO << pair.first<<"   "<<loc<<" value  "<<tex_unit);
+			//this->textures_per_texunits[tex_unit] = tex;
 			break;
 		}
 		default:
@@ -281,8 +276,66 @@ void GlShaderProgram::execute_with(const GlUniformInput *unif_in, const GlGeomet
 	}
 }
 
-std::unique_ptr<UniformInput> GlShaderProgram::new_unif_in() {
-	auto in = std::make_unique<GlUniformInput>();
+
+void GlShaderProgram::send_uniform(const GlUniformInput *unif_in) {
+	assert(unif_in->program == this);
+
+	this->use();
+
+	uint8_t const* data = unif_in->update_data.data();
+	for (auto const &pair : unif_in->update_offs) {
+		uint8_t const* ptr = data + pair.second;
+		auto loc = this->uniforms[pair.first].location;
+
+		switch (this->uniforms[pair.first].type) {
+		case GL_INT:
+			glUniform1i(loc, *reinterpret_cast<const GLint*>(ptr));
+			break;
+		case GL_UNSIGNED_INT:
+			glUniform1ui(loc, *reinterpret_cast<const GLuint*>(ptr));
+			break;
+		case GL_FLOAT:
+			glUniform1f(loc, *reinterpret_cast<const float*>(ptr));
+			break;
+		case GL_DOUBLE:
+			// TODO requires an extension
+			glUniform1d(loc, *reinterpret_cast<const double*>(ptr));
+			break;
+		case GL_FLOAT_VEC2:
+			glUniform2fv(loc, 1, reinterpret_cast<const float*>(ptr));
+			break;
+		case GL_FLOAT_VEC3:
+			glUniform3fv(loc, 1, reinterpret_cast<const float*>(ptr));
+			break;
+		case GL_FLOAT_VEC4:
+			glUniform4fv(loc, 1, reinterpret_cast<const float*>(ptr));
+			break;
+		case GL_FLOAT_MAT3:
+			glUniformMatrix3fv(loc, 1, false, reinterpret_cast<const float*>(ptr));
+			break;
+		case GL_FLOAT_MAT4:
+			glUniformMatrix4fv(loc, 1, false, reinterpret_cast<const float*>(ptr));
+			break;
+		case GL_INT_VEC2:
+			glUniform2iv(loc, 1, reinterpret_cast<const GLint*>(ptr));
+			break;
+		case GL_INT_VEC3:
+			glUniform3iv(loc, 1, reinterpret_cast<const GLint*>(ptr));
+			break;
+		case GL_SAMPLER_2D: {
+
+			//glUniform1i(loc, pair.first);
+			break;
+		}
+		default:
+			throw Error(MSG(err) << "Tried to upload unknown uniform type to GL shader.");
+		}
+	}
+
+}
+
+std::shared_ptr<UniformInput> GlShaderProgram::new_unif_in() {
+	auto in = std::make_shared<GlUniformInput>();
 	in->program = this;
 	return in;
 }
@@ -356,6 +409,28 @@ void GlShaderProgram::set_tex(UniformInput *in, const char *unif, Texture const*
 	auto const& tex = *static_cast<const GlTexture*>(val);
 	GLuint handle = tex.get_handle();
 	this->set_unif(in, unif, &handle, GL_SAMPLER_2D);
+}
+
+int GlShaderProgram::texture_array(){
+	std::string temp = "texture_";
+	for(int i = 0;i<32;i++){
+		std::string temp_2 = temp + std::to_string(i); 
+		auto loc = this->uniforms[temp_2].location;
+		glUniform1i(loc,i);
+		//log::log(INFO << temp_2<<"   "<<loc<<" value  "<< i);
+	}
+	return 0;
+}
+
+int GlShaderProgram::sampler_array(int active_id){
+	std::string temp = "texture_array";
+	//for(int i = 0;i<32;i++){
+		//std::string temp_2 = temp + std::to_string(i); 
+		auto loc = this->uniforms[temp].location;
+		glUniform1i(loc,active_id);
+		//log::log(INFO << temp<<"   "<<loc<<" location  ");
+	//}
+	return active_id;
 }
 
 }}} // openage::renderer::opengl

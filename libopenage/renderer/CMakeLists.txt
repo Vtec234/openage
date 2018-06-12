@@ -8,13 +8,16 @@ add_sources(libopenage
   shader_program.h
   #terrain_renderer.cpp
   tests.cpp
+  batch_test.cpp
   text.cpp
   texture.cpp
   window.cpp
+
 )
 
 pxdgen(
 	tests.h
+  batch_test.h
 )
 
 add_subdirectory(font/)

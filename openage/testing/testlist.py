@@ -48,6 +48,8 @@ def demos_py():
            "demonstrates the translation of Python log messages")
     yield ("openage.renderer.tests.renderer_demo",
            "showcases the new renderer")
+    yield ("openage.renderer.batch_test.batch_demo","showcases the new batch renderer")
+    
 
 
 def benchmark_py():
@@ -107,6 +109,9 @@ def demos_cpp():
            "translates a Python exception to C++")
     yield ("openage::pyinterface::tests::pyobject_demo",
            "a tiny interactive interpreter using PyObjectRef")
+    #yield ("openage::renderer::batch_test::batch_demo","showcases the new batch renderer")
+
+    
 
 
 def benchmark_cpp():

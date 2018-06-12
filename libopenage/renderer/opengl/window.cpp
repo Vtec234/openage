@@ -35,6 +35,7 @@ GlWindow::GlWindow(const char *title, coord::window size)
 	}
 
 	this->context = opengl::GlContext(this->window);
+	this->context->set_vsync(false);
 	this->add_resize_callback([] (coord::window new_size) { glViewport(0, 0, new_size.x, new_size.y); } );
 
 	log::log(MSG(info) << "Created SDL window with OpenGL context.");
@@ -89,9 +90,17 @@ void GlWindow::update() {
 	SDL_GL_SwapWindow(this->window);
 }
 
-std::unique_ptr<Renderer> GlWindow::make_renderer() {
-	return std::make_unique<GlRenderer>(this->get_context());
+std::shared_ptr<Renderer> GlWindow::make_renderer() {
+	return std::make_shared<GlRenderer>(this->get_context());
 }
+
+std::shared_ptr<BatchRenderer> GlWindow::make_batchrenderer(util::Path& path) {
+	return std::make_shared<BatchRenderer>(this->get_context(),path);
+}
+
+/* std::shared_ptr<VertexRenderer> GlWindow::make_vertexrenderer(util::Path& path) {
+	return std::make_shared<VertexRenderer>(this->get_context(),path);
+} */
 
 void GlWindow::make_context_current() {
 	SDL_GL_MakeCurrent(this->window, this->context->get_raw_context());

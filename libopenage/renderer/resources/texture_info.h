@@ -88,7 +88,7 @@ private:
 	pixel_format format;
 
 	/// The alignment of texture rows to byte boundaries. Can be 1, 2, 4 or 8.
-	/// There is padding at the end of each row to match the alignment if the
+	/// There is padding at the end of each row to match thze alignment if the
 	/// row size is not a multiple of the alignment.
 	size_t row_alignment;
 

@@ -55,6 +55,7 @@ static gl_context_capabilities find_capabilities() {
 	}
 
 	test_context = SDL_GL_CreateContext(test_window);
+	
 	if (test_context == nullptr) {
 		throw Error(MSG(err) << "Failed to create OpenGL context which previously succeeded. This should not happen! SDL Error: " << SDL_GetError());
 	}
@@ -91,7 +92,7 @@ GlContext::GlContext(SDL_Window *window) {
 	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, capabilities.major_version);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, capabilities.minor_version);
-
+	
 	this->gl_context = SDL_GL_CreateContext(window);
 
 	if (this->gl_context == nullptr) {

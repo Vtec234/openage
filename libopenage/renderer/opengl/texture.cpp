@@ -56,7 +56,7 @@ GlTexture::GlTexture(const resources::TextureData& data)
 	// TODO these are outdated, use sampler settings
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
+	glBindTexture(GL_TEXTURE_2D, 0);
 	log::log(MSG(dbg) << "Created OpenGL texture from data");
 }
 
@@ -97,6 +97,10 @@ resources::TextureData GlTexture::into_data() {
 	glGetTexImage(GL_TEXTURE_2D, 0, std::get<1>(fmt_in_out), std::get<2>(fmt_in_out), data.data());
 
 	return resources::TextureData(resources::TextureInfo(this->info), std::move(data));
+}
+
+void GlTexture::bind(){
+	glBindTexture(GL_TEXTURE_2D, *this->handle);
 }
 
 }}} // openage::renderer::opengl

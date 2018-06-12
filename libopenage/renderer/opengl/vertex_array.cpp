@@ -101,4 +101,9 @@ void GlVertexArray::bind() const {
 	*/
 }
 
+void GlVertexArray::unbind() const {
+	glBindVertexArray(0);
+
+}
+
 }}} // openage::renderer::opengl

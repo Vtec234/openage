@@ -42,6 +42,7 @@ public:
 
 	/// Make this vertex array object the current one.
 	void bind() const;
+	void unbind() const; 
 };
 
 }}} // openage::renderer::opengl

@@ -59,6 +59,19 @@ struct Renderable {
 	bool depth_test;
 };
 
+struct Renderable_test {
+	/// Uniform values to be set in the appropriate shader. Contains a reference to the correct shader, and this
+	/// is the shader that will be used for drawing if geometry is present.
+	std::shared_ptr<UniformInput> unif_in;
+	/// The geometry. It can be a simple primitive or a complex mesh.
+	/// Can be nullptr to only set uniforms but do not perform draw call.
+	std::shared_ptr<Geometry> geometry;
+	/// Whether to perform alpha-based color blending with whatever was in the render target before.
+	bool alpha_blending;
+	/// Whether to perform depth testing and discard occluded fragments.
+	bool depth_test;
+};
+
 /// A render pass is a series of draw calls represented by renderables that output into the given render target.
 struct RenderPass {
 	/// The renderables to parse and possibly execute.
@@ -67,6 +80,12 @@ struct RenderPass {
 	RenderTarget const *target;
 };
 
+struct RenderPass_test {
+	/// The renderables to parse and possibly execute.
+	std::vector<Renderable_test> renderables;
+	/// The render target to write into.
+	RenderTarget const *target;
+};
 /// The renderer. This class is used for performing all graphics operations. It is abstract and has implementations
 /// for various low-level graphics APIs like OpenGL.
 class Renderer {
@@ -82,11 +101,11 @@ public:
 
 	/// Compiles the given shader source code into a shader program. A shader program is the main tool used
 	/// for graphics rendering.
-	virtual std::unique_ptr<ShaderProgram> add_shader(std::vector<resources::ShaderSource> const&) = 0;
+	virtual std::shared_ptr<ShaderProgram> add_shader(std::vector<resources::ShaderSource> const&) = 0;
 
 	/// Creates a Geometry object from the given mesh data, uploading it to the GPU by creating appropriate buffer.
 	/// The vertex attributes will be passed to the shader as described in the mesh data.
-	virtual std::unique_ptr<Geometry> add_mesh_geometry(resources::MeshData const&) = 0;
+	virtual std::shared_ptr<Geometry> add_mesh_geometry(resources::MeshData const&) = 0;
 
 	/// Adds a Geometry object that passes a simple 4-vertex drawing command with no vertex attributes to the shader.
 	/// Useful for generating positions in the vertex shader.
@@ -107,6 +126,7 @@ public:
 
 	/// Executes a render pass.
 	virtual void render(RenderPass const&) = 0;
+	virtual void render_test(RenderPass_test const&) = 0;
 };
 
 }}

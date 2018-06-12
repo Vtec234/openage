@@ -18,6 +18,7 @@ public:
 
 	/// Creates a buffer of the specified size and fills it with the given data.
 	GlBuffer(const uint8_t *data, size_t size, GLenum usage = GL_STATIC_DRAW);
+	GlBuffer(const float *data, size_t size, GLenum usage = GL_STATIC_DRAW);
 
 	/// The size in bytes of this buffer.
 	size_t get_size() const;
@@ -28,6 +29,7 @@ public:
 
 	/// Bind this buffer to the specified GL target.
 	void bind(GLenum target) const;
+	void unbind(GLenum target) const;
 
 private:
 	/// The size in bytes of this buffer.

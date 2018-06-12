@@ -14,7 +14,6 @@ namespace renderer {
 
 class UniformInput;
 class Texture;
-
 class ShaderProgram {
 public:
 	// Template dispatches for uniform variable setting.
@@ -56,6 +55,8 @@ public:
 		this->set_tex(input, unif, val);
 	}
 
+
+
 	void update_uniform_input(UniformInput *input, const char *unif, Eigen::Matrix4f const &val) {
 		this->set_m4f32(input, unif, val);
 	}
@@ -75,7 +76,7 @@ public:
 	/// "color" to { 0.5, 0.5, 0.5, 0.5 } and "num" to 5. Types are important here and a type
 	/// mismatch between the uniform variable and the input might result in an error.
 	template<typename... Ts>
-	std::unique_ptr<UniformInput> new_uniform_input(Ts... vals) {
+	std::shared_ptr<UniformInput> new_uniform_input(Ts... vals) {
 		auto input = this->new_unif_in();
 		this->update_uniform_input(input.get(), vals...);
 		return input;
@@ -92,7 +93,7 @@ public:
 
 protected:
 	// Virtual dispatches to the actual shader program implementation.
-	virtual std::unique_ptr<UniformInput> new_unif_in() = 0;
+	virtual std::shared_ptr<UniformInput> new_unif_in() = 0;
 	virtual void set_i32(UniformInput*, const char*, int32_t) = 0;
 	virtual void set_u32(UniformInput*, const char*, uint32_t) = 0;
 	virtual void set_f32(UniformInput*, const char*, float) = 0;
